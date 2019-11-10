@@ -1,0 +1,16 @@
+{
+  "name": "node_serial",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "raspi-serial": "^5.1.2",
+    "serialport": "^8.0.5",
+    "sleep": "^6.1.0"
+  }
+}
