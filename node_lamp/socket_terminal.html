@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Socket Comms</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+
+</head>
+
+<body>
+    <h2>Socket Communicator</h2>
+    <h3>Ex msgs</h3>
+    <p> {"col": [255,0,0] } </p>
+
+    <form action="">
+      <div class="input-group">
+          <!--Input custom here, ID,-->
+          <input id="header" autocomplete="off" type="text" class="form-control" placeholder="header" aria-label="Header">
+          <input id="content" autocomplete="off" type="text" class="form-control" placeholder="Message..." aria-label="Message...">
+          <span class="input-group-btn">
+            <button class="btn btn-secondary" type="submit">Send</button>
+          </span>
+        </div>
+        <lavel>Last Sent : </lavel><span id='sent'></span>
+    </form>
+    
+    <script src="socket.io.js"></script>
+
+    <script type="text/javascript">
+
+    	// Connect
+    	var serverAddr = 'http://smartpi:8000';
+    	const socket = io(serverAddr);
+
+    	socket.on('connect', ()=>{
+    		console.log('connected to socket server ', serverAddr);
+	        socket.emit('msg', 'Hey socket im the terminal');
+	      });
+
+        socket.on('msg',(data)=>{
+            console.log(' #Recv :\t[msg] : ', data );
+        });
+
+        $('form').submit( ()=>{
+            let cont = $('#content')[0].value;
+            let head = $('#header')[0].value;
+            let sent = $('#sent')[0];
+
+            let msg;
+            try{
+                msg = JSON.parse(cont);
+            }
+            catch(e){
+                msg = cont;
+            }
+
+            sent.textContent = `[${head}] : ${cont} `;
+            console.log(` #Send [${head}] : ${cont} `);
+            socket.emit(head,msg);
+
+            return false;
+        });
+
+    	
+    </script>
+</body>
+</html>

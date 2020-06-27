@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Socket Comms</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+
+    <!-- <script src="../hammer.js"></script> -->
+    <script src="https://hammerjs.github.io/dist/hammer.js"></script>
+
+    <style>
+        /******/
+        #square {
+            width: 100%;
+            height: 500px;
+            background-color: white;
+            left: 0;
+            top: 0;
+        }
+        #marker {
+            position: relative;
+            width: 10px;
+            height: 40px;
+            border: 2px solid black;
+            background-color: white;
+        }
+
+        #mode{
+            font-size: 30px;
+            text-align: center;
+            padding: 20px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div id="square"><div id="marker"></div></div>
+
+    <div id="mode">MODE</div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script type="text/javascript">
+
+    	// Connect
+    	var serverAddr = 'http://smartpi:8000';
+
+    	const socket = io();   // no address since this is the Server...
+
+    	socket.on('connect', ()=>{
+    		console.log('connected Socket ');
+	        socket.emit('msg', 'Hey socket, lamp interface here. ');
+	      });
+
+        socket.on('msg',(data)=>{
+            console.log(' #Recv :\t[msg] : ', data );
+        });
+
+        socket.on('lamp',(data)=>{
+
+            if(data.hasOwnProperty('get-col')){
+                let col = data['get-col'];
+                hue = col[0] *360;
+                bright = col[2] *100;
+                set_HSV(hue, bright );
+                set_marker(hue, bright );
+                // let hsv = rgb_to_hsv(col);
+                // let hsv = col;
+                // let rgb = HSVtoRGB(hsv[0],hsv[1],hsv[2]);
+                // square.style.backgroundColor = '#'+rgbToHex(rgb[0])+rgbToHex(rgb[1])+rgbToHex(rgb[2]);
+            }
+            if(data.hasOwnProperty('get-mode')){
+                let mod = $('#mode')[0];
+                // if(data['get-mode'].hasOwnProperty('mode'))
+                mod.textContent = data['get-mode']['mode'];
+                lampmode = data['get-mode']['n'];
+                lampMax = data['get-mode']['max'];
+                // console.log(' get mode : ', data );
+            }
+
+            // Eo socket[ lamp ]
+        });
+
+        // ***
+        var lampmode = 0;
+        var lampMax = 5;
+        $('#mode')[0].onclick = function(){
+            lampmode++;
+            if(lampmode>=lampMax) lampmode = 0;
+            socket.emit('lamp',{'set-mode':{ n: lampmode } } );
+            // lamp auto replies with new mode
+        }
+        // **** Hamemrtime
+
+        var square = document.getElementById('square');
+        var mc = new Hammer(square);
+        mc.get('pan').set({ direction: Hammer.DIRECTION_ALL });
+
+        var lastPan = {deltaX:0, deltaY:0 };
+
+        mc.on("panleft panright panup pandown tap press", function(ev) {
+            // console.log( ev.deltaX, ev.deltaY, ev.direction );
+
+            // X - hue
+            let diff = ev.deltaX - lastPan.deltaX;
+            hue += diff/12;
+            if(hue<0)   hue += 360;
+            if(hue>360) hue -= 360;
+
+            // Y - bright
+            diff = ev.deltaY - lastPan.deltaY;
+            bright -= diff/10;
+            if(bright<0)    bright = 0;
+            if(bright>100)  bright = 100;
+
+            set_HSV(hue,bright); // <360 , <100
+            set_marker(hue,bright);
+
+            lastPan = ev;
+        });
+
+        mc.on("panend",(ev)=>{
+            // console.log("END");
+            lastPan = {deltaX:0, deltaY:0 };
+        });
+
+        function set_marker(hue,bright){
+            let M = $('#marker')[0];
+            M.style.left = (100*hue/360)+'%';
+            M.style.top = (90-90*bright/100)+'%';
+        }
+
+        // * Pan
+        var colour = [ 255, 0, 0 ];
+        var hue = 0;
+        var bright = 100;
+
+        function rgb_to_hsv(rgb){
+            // Make r, g, and b fractions of 1
+            let r = rgb[0]/255;
+            let g = rgb[1]/255;
+            let b = rgb[2]/255;
+
+            // Find greatest and smallest channel values
+            let cmin = Math.min(r,g,b),
+            cmax = Math.max(r,g,b),
+            delta = cmax - cmin,
+            h = 0,
+            s = 0,
+            l = 0;
+
+            // No difference
+            if (delta == 0)
+                h = 0;
+            // Red is max
+            else if (cmax == r)
+                h = ((g - b) / delta) % 6;
+            // Green is max
+            else if (cmax == g)
+                h = (b - r) / delta + 2;
+            // Blue is max
+            else
+                h = (r - g) / delta + 4;
+
+            h = Math.round(h * 600)/10;
+
+            // Make negative hues positive behind 360°
+            if (h < 0)
+                h += 360;
+            
+            l = (cmax + cmin) / 1; // my results seem 50% too low??
+            s = delta == 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+    
+            // Multiply l and s by 100
+            s = +(s * 100).toFixed(1);
+            l = +(l * 100).toFixed(1);
+
+            return [h,s,l];
+            // Eo funct
+        }   
+        
+
+        function set_color(hue){
+            var rgb = HSVtoRGB(hue/360,1,1);
+            var hex = '#'+rgbToHex(rgb.r)+rgbToHex(rgb.g)+rgbToHex(rgb.b);
+            square.style.backgroundColor = hex;
+            socket.emit('lamp',{'set-col': [rgb.r,rgb.g,rgb.b] } );
+        }
+
+        function set_HSV(hue, bright){
+            var rgb = HSVtoRGB(hue/360,1,bright/100);
+            var hex = '#'+rgbToHex(rgb.r)+rgbToHex(rgb.g)+rgbToHex(rgb.b);
+            square.style.backgroundColor = hex;
+            // socket.emit('lamp',{'set-col': [rgb.r,rgb.g,rgb.b] } );
+            socket.emit('lamp',{'set-col': [ hue/360, 1, bright/100] } );
+        }
+
+        // inputs all 0 <= x <= 1
+        function HSVtoRGB(h, s, v) {
+            var r, g, b, i, f, p, q, t;
+            if (arguments.length === 1) {
+                s = h.s, v = h.v, h = h.h;
+            }
+            i = Math.floor(h * 6);
+            f = h * 6 - i;
+            p = v * (1 - s);
+            q = v * (1 - f * s);
+            t = v * (1 - (1 - f) * s);
+            switch (i % 6) {
+                case 0: r = v, g = t, b = p; break;
+                case 1: r = q, g = v, b = p; break;
+                case 2: r = p, g = v, b = t; break;
+                case 3: r = p, g = q, b = v; break;
+                case 4: r = t, g = p, b = v; break;
+                case 5: r = v, g = p, b = q; break;
+            }
+            return {
+                r: Math.round(r * 255),
+                g: Math.round(g * 255),
+                b: Math.round(b * 255)
+            };
+        }
+
+        var rgbToHex = function (rgb) { 
+          var hex = Number(rgb).toString(16);
+          if (hex.length < 2) {
+               hex = "0" + hex;
+          }
+          return hex;
+        };
+
+        // At beginning get colour of lamp
+        socket.emit('lamp', {'get-col': 1 });
+
+        socket.emit('lamp', {'get-mode': 1 });
+
+        // set_color(hue);
+    	
+    </script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Socket Room</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="/socket.io/socket.io.js"></script>
+
+</head>
+
+<body>
+    <h2>Socket</h2>
+    <p>paragraph</p>
+    <div id="console"></div>
+
+    
+      <script>
+          //console.log(`
+          const socket = io();
+
+          socket.on('connect', ()=>{
+            console.log(" Socket connected ");
+
+            socket.emit('msg', 'Hey you sockers');
+          });
+
+          socket.on('msg', (data)=>{
+            $('#console').append($('<p>').text(data));
+          });
+
+      </script>
+
+</body>
+</html>
