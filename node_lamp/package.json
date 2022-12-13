@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "raspi-serial": "^5.1.2",
     "serialport": "^8.0.5",
     "sleep": "^6.1.0",
